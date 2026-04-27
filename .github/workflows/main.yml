@@ -44,27 +44,6 @@ jobs:
           git submodule status
 
           echo
-          echo "Available package manager:"
-          command -v dkp-pacman || true
-          command -v pacman || true
-
-          echo
-          echo "devkitPro package query:"
-          if command -v dkp-pacman >/dev/null 2>&1; then
-            dkp-pacman -Q libnx devkitA64 switch-tools || true
-            echo
-            echo "Full libnx package info:"
-            dkp-pacman -Qi libnx || true
-          elif command -v pacman >/dev/null 2>&1; then
-            pacman -Q libnx devkitA64 switch-tools || true
-            echo
-            echo "Full libnx package info:"
-            pacman -Qi libnx || true
-          else
-            echo "No pacman/dkp-pacman found in PATH."
-          fi
-
-          echo
           echo "libnx files:"
           ls -la "$DEVKITPRO/libnx" || true
           ls -la "$DEVKITPRO/libnx/include/switch.h" || true
@@ -72,70 +51,6 @@ jobs:
           echo
           echo "libnx library directory:"
           ls -la "$DEVKITPRO/libnx/lib" || true
-
-      - name: Save build info
-        run: |
-          {
-            echo "Build date: $(date -u)"
-            echo
-            echo "Repository commit:"
-            git rev-parse HEAD
-            echo
-            echo "Submodules:"
-            git submodule status
-            echo
-            echo "Environment:"
-            echo "DEVKITPRO=$DEVKITPRO"
-            echo "DEVKITARM=$DEVKITARM"
-            echo "DEVKITA64=$DEVKITA64"
-
-            echo
-            echo "Available package manager:"
-            command -v dkp-pacman || true
-            command -v pacman || true
-
-            echo
-            echo "devkitPro package query:"
-            if command -v dkp-pacman >/dev/null 2>&1; then
-              dkp-pacman -Q libnx devkitA64 switch-tools || true
-              echo
-              echo "Full libnx package info:"
-              dkp-pacman -Qi libnx || true
-            elif command -v pacman >/dev/null 2>&1; then
-              pacman -Q libnx devkitA64 switch-tools || true
-              echo
-              echo "Full libnx package info:"
-              pacman -Qi libnx || true
-            else
-              echo "No pacman/dkp-pacman found in PATH."
-            fi
-
-            echo
-            echo "libnx directory:"
-            ls -la "$DEVKITPRO/libnx" || true
-
-            echo
-            echo "libnx include directory:"
-            ls -la "$DEVKITPRO/libnx/include" | head -100 || true
-
-            echo
-            echo "libnx library directory:"
-            ls -la "$DEVKITPRO/libnx/lib" || true
-
-            echo
-            echo "libnx metadata search:"
-            find "$DEVKITPRO/libnx" -maxdepth 3 -type f \( \
-              -iname "*version*" -o \
-              -iname "*.pc" -o \
-              -iname "*pkg*" \
-            \) -print || true
-
-            echo
-            echo "libnx version-related text:"
-            grep -RniE "libnx|version|pkgver" "$DEVKITPRO/libnx" 2>/dev/null | head -100 || true
-          } > build-info.txt
-
-          cat build-info.txt
 
       - name: Build
         run: |
@@ -147,6 +62,38 @@ jobs:
           sha256sum ovlSysmodules.ovl > ovlSysmodules.ovl.sha256
           cat ovlSysmodules.ovl.sha256
 
+      - name: Generate release notes
+        run: |
+          {
+            echo "## Source"
+            echo
+            echo "- Repository commit: \`$(git rev-parse HEAD)\`"
+            echo
+            echo "### Submodules"
+            echo
+            git submodule status | awk '{print "- `" $1 "` " $2 " " $3}'
+            echo
+            echo "## Dependency versions"
+            echo
+            echo "- libnx: 4.12.0-1"
+            echo "- devkitA64: r29.2-1"
+            echo "- switch-tools: 1.13.1-1"
+            echo
+            echo "## Files"
+            echo
+            echo "- \`ovlSysmodules.ovl\`"
+            echo "- \`ovlSysmodules.ovl.sha256\`"
+            echo "- \`release-notes.md\`"
+            echo
+            echo "## SHA256"
+            echo
+            echo "\`\`\`text"
+            cat ovlSysmodules.ovl.sha256
+            echo "\`\`\`"
+          } > release-notes.md
+
+          cat release-notes.md
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -154,13 +101,14 @@ jobs:
           path: |
             ovlSysmodules.ovl
             ovlSysmodules.ovl.sha256
-            build-info.txt
+            release-notes.md
 
       - name: Upload files to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          body_path: release-notes.md
           files: |
             ovlSysmodules.ovl
             ovlSysmodules.ovl.sha256
-            build-info.txt
+            release-notes.md
