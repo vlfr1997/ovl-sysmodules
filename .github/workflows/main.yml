@@ -13,20 +13,69 @@ jobs:
     container: devkitpro/devkita64
 
     steps:
-    - name: Checkout project
-      uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
       with:
         submodules: recursive
 
-    - name: Build project
-      run: make
+    - name: Show build environment
+      run: |
+        echo "DEVKITPRO=$DEVKITPRO"
+        echo "DEVKITARM=$DEVKITARM"
+        echo "DEVKITA64=$DEVKITA64"
+
+        echo
+        echo "Repository commit:"
+        git rev-parse HEAD
+
+        echo
+        echo "Submodules:"
+        git submodule status
+
+        echo
+        echo "devkitPro packages:"
+        pacman -Q libnx devkitA64 switch-tools || true
+
+    - name: Save build info
+      run: |
+        {
+          echo "Build date: $(date -u)"
+          echo
+          echo "Repository commit:"
+          git rev-parse HEAD
+          echo
+          echo "Submodules:"
+          git submodule status
+          echo
+          echo "Environment:"
+          echo "DEVKITPRO=$DEVKITPRO"
+          echo "DEVKITARM=$DEVKITARM"
+          echo "DEVKITA64=$DEVKITA64"
+          echo
+          echo "devkitPro packages:"
+          pacman -Q libnx devkitA64 switch-tools || true
+          echo
+          echo "Full libnx package info:"
+          pacman -Qi libnx || true
+        } > build-info.txt
+
+        cat build-info.txt
+
+    - name: Build
+      run: |
+        make clean
+        make -j$(nproc)
 
     - name: Generate checksum
-      run: sha256sum ovlSysmodules.ovl > ovlSysmodules.ovl.sha256
+      run: |
+        sha256sum ovlSysmodules.ovl > ovlSysmodules.ovl.sha256
+        cat ovlSysmodules.ovl.sha256
 
-    - name: Upload artifacts
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
+        name: ovlSysmodules
         path: |
           ovlSysmodules.ovl
           ovlSysmodules.ovl.sha256
+          build-info.txt
