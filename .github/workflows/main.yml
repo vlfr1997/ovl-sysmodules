@@ -37,8 +37,21 @@ jobs:
         git submodule status
 
         echo
-        echo "devkitPro packages:"
+        echo "pacman package query:"
         pacman -Q libnx devkitA64 switch-tools || true
+
+        echo
+        echo "Searching installed devkitPro packages:"
+        pacman -Q | grep -Ei 'libnx|devkit|switch' || true
+
+        echo
+        echo "libnx files:"
+        ls -la "$DEVKITPRO/libnx" || true
+        ls -la "$DEVKITPRO/libnx/include/switch.h" || true
+
+        echo
+        echo "libnx version macros:"
+        grep -R "VERSION" "$DEVKITPRO/libnx/include/switch/kernel/firmware.h" "$DEVKITPRO/libnx/include/switch.h" "$DEVKITPRO/libnx/include" 2>/dev/null | head -50 || true
 
     - name: Save build info
       run: |
@@ -56,11 +69,23 @@ jobs:
           echo "DEVKITARM=$DEVKITARM"
           echo "DEVKITA64=$DEVKITA64"
           echo
-          echo "devkitPro packages:"
+          echo "pacman package query:"
           pacman -Q libnx devkitA64 switch-tools || true
+          echo
+          echo "Searching installed devkitPro packages:"
+          pacman -Q | grep -Ei 'libnx|devkit|switch' || true
           echo
           echo "Full libnx package info:"
           pacman -Qi libnx || true
+          echo
+          echo "libnx directory:"
+          ls -la "$DEVKITPRO/libnx" || true
+          echo
+          echo "libnx include directory:"
+          ls -la "$DEVKITPRO/libnx/include" | head -100 || true
+          echo
+          echo "libnx version-related macros:"
+          grep -R "VERSION" "$DEVKITPRO/libnx/include" 2>/dev/null | head -100 || true
         } > build-info.txt
 
         cat build-info.txt
