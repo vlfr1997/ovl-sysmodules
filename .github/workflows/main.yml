@@ -37,21 +37,26 @@ jobs:
         git submodule status
 
         echo
-        echo "pacman package query:"
-        pacman -Q libnx devkitA64 switch-tools || true
+        echo "Available package manager:"
+        command -v dkp-pacman || true
+        command -v pacman || true
 
         echo
-        echo "Searching installed devkitPro packages:"
-        pacman -Q | grep -Ei 'libnx|devkit|switch' || true
+        echo "devkitPro package query:"
+        if command -v dkp-pacman >/dev/null 2>&1; then
+          dkp-pacman -Q libnx devkitA64 switch-tools || true
+          dkp-pacman -Qi libnx || true
+        elif command -v pacman >/dev/null 2>&1; then
+          pacman -Q libnx devkitA64 switch-tools || true
+          pacman -Qi libnx || true
+        else
+          echo "No pacman/dkp-pacman found in PATH."
+        fi
 
         echo
         echo "libnx files:"
         ls -la "$DEVKITPRO/libnx" || true
         ls -la "$DEVKITPRO/libnx/include/switch.h" || true
-
-        echo
-        echo "libnx version macros:"
-        grep -R "VERSION" "$DEVKITPRO/libnx/include/switch/kernel/firmware.h" "$DEVKITPRO/libnx/include/switch.h" "$DEVKITPRO/libnx/include" 2>/dev/null | head -50 || true
 
     - name: Save build info
       run: |
@@ -68,24 +73,39 @@ jobs:
           echo "DEVKITPRO=$DEVKITPRO"
           echo "DEVKITARM=$DEVKITARM"
           echo "DEVKITA64=$DEVKITA64"
+
           echo
-          echo "pacman package query:"
-          pacman -Q libnx devkitA64 switch-tools || true
+          echo "Available package manager:"
+          command -v dkp-pacman || true
+          command -v pacman || true
+
           echo
-          echo "Searching installed devkitPro packages:"
-          pacman -Q | grep -Ei 'libnx|devkit|switch' || true
-          echo
-          echo "Full libnx package info:"
-          pacman -Qi libnx || true
+          echo "devkitPro package query:"
+          if command -v dkp-pacman >/dev/null 2>&1; then
+            dkp-pacman -Q libnx devkitA64 switch-tools || true
+            echo
+            echo "Full libnx package info:"
+            dkp-pacman -Qi libnx || true
+          elif command -v pacman >/dev/null 2>&1; then
+            pacman -Q libnx devkitA64 switch-tools || true
+            echo
+            echo "Full libnx package info:"
+            pacman -Qi libnx || true
+          else
+            echo "No pacman/dkp-pacman found in PATH."
+          fi
+
           echo
           echo "libnx directory:"
           ls -la "$DEVKITPRO/libnx" || true
+
           echo
           echo "libnx include directory:"
           ls -la "$DEVKITPRO/libnx/include" | head -100 || true
+
           echo
-          echo "libnx version-related macros:"
-          grep -R "VERSION" "$DEVKITPRO/libnx/include" 2>/dev/null | head -100 || true
+          echo "libnx library directory:"
+          ls -la "$DEVKITPRO/libnx/lib" || true
         } > build-info.txt
 
         cat build-info.txt
